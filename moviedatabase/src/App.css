@@ -1,0 +1,115 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+.App-Nav {
+  position: absolute;
+  top: 15px;
+  width: 45px;
+  height: 45px;
+  left: 15px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #0e0d05;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #fbf161;
+}
+
+.SearchMovieHeader{
+  color:#e0e031;
+  margin-bottom: 30px;
+  transform: rotateZ(3deg);
+  font-size: 42px;
+}
+
+.SearchMovieInput{
+  max-width: 75vh;
+  margin: auto;
+}
+
+button{
+  margin:10px;
+  min-width: 115px;
+}
+
+.page{
+  width: -webkit-fill-available;
+  padding: 2em;
+}
+
+ol,ul {
+  list-style:none;
+}
+
+.fav {
+  position: absolute;
+  color: ghostwhite;
+  font-size: 1.25em;
+}
+
+.MovieItem {  
+  display: inline-flex;
+  padding: 0.5em;
+}
+
+.MovieItemPoster {
+  width: 5em;
+}
+
+.MovieItemTitle {
+  width: 16em;
+  padding: 0.4em;
+}
+
+@keyframes App-logo-spin {
+  0% {
+    transform: rotate(0deg);
+    filter: sepia() saturate(10000%) hue-rotate(0deg)
+  }
+  25% {
+    transform: rotate(90deg);
+    filter: sepia() saturate(10000%) hue-rotate(90deg)
+  }
+  50% {
+    transform: rotate(180deg);
+    filter: sepia() saturate(10000%) hue-rotate(180deg)
+  }
+  75% {
+    transform: rotate(270deg);
+    filter: sepia() saturate(10000%) hue-rotate(270deg)
+  }
+  100% {
+    transform: rotate(360deg);
+    filter: sepia() saturate(10000%) hue-rotate(360deg)
+  }
+}
+
+@keyframes App-log {
+  from {
+    width:200%;
+  }
+  to {
+    width:500%;
+  }
+}
