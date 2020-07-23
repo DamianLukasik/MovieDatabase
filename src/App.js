@@ -322,7 +322,7 @@ class Search extends Component {
             <div class="pagination">
               { (this.state.TotalResults!=0 && this.state.ActuallPage>1) ? <li className="noselect" onClick={()=>this.ChangePage("prev")}>&laquo;</li> : null}
               {this.state.Pages.map((page, i) => {
-                if(i+1<this.state.ActuallPage){
+                if(i+1<this.state.ActuallPage && i+1>(this.state.ActuallPage-5)){
                   return <li className="noselect" onClick={()=>this.ChangePage(i+1)}>{i+1}</li>
                 }
                 return false;
