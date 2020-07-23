@@ -1,4 +1,4 @@
-#MovieDatabase App
+# MovieDatabase App
 
 Simple website that allows browsing / searching movie database provided by http://www.omdbapi.com/ . Logged users can search database of movies, show detailed information about movie and add him to favourite. Login as Facebook user. Application don't keep private information about users of Facebook like names, addresses, friends list, posts, events. Presented movies in Api results are property of the creators. Created application was recruitment task for abroad company.
 
