@@ -6,8 +6,7 @@ import './App.css';
 
 import FacebookLogin from 'react-facebook-login';
 
-let data = {};
-let picture = '';
+var Datastore = require('react-native-local-mongodb')
 
 class Search extends Component {
   constructor(props) {
@@ -20,85 +19,136 @@ class Search extends Component {
     this.AddToResultList = this.AddToResultList.bind(this);
     this.SaveToDatabase = this.SaveToDatabase.bind(this);
     this.LoadFromDatabase = this.LoadFromDatabase.bind(this);
-    this.state = {Result: [], countResult: 10, date: new Date(), date2: new Date(), diff: 0, APIsend: false };
+    let db = new Datastore({ filename: 'asyncStorageKey', autoload: true });
+    this.state = {user: this.props.user, database: db, TotalResults: 0, ActuallPage: 1, Pages: [], Result: [], date: new Date(), date2: new Date(), diff: 0, APIsend: false };
   }
-  SaveToDatabase(id){
-    console.log(id);
+  SaveToDatabase(id,fields,value){
+    let userID = this.state.user.id;
+    this.state.database.findOne({ _id: userID }, (err, docs) => {
+      if(fields=="fav"){
+        if(docs==undefined || docs==null){
+          let rec = { _id: userID, fav: [id] };
+          console.log(this);
+          this.state.database.insert(rec, function (err, newDoc) {
+            console.log("insert new data");
+            console.log(newDoc);
+          });/* */
+        }else{
+          if(value){
+            this.state.database.update({ _id: userID }, { $push: { fav: id } }, {}, function () {
+              console.log("update data"+id);
+            });
+          }else{
+            this.state.database.update({ _id: userID }, { $pull: { fav: {$in: [id]} } }, {}, function () {
+              console.log("update data"+id);
+            });
+          }          
+        }  
+      }    
+    });   
   }
-  LoadFromDatabase(id){
-    console.log(id);
+  LoadFromDatabase(userID,fields){
+    this.state.database.findOne({ _id: userID }, (err, docs) => {
+      console.log(docs);
+      if(fields=="fav"){
+        let list = this.state.Result;
+        docs.fav.map((idx, i) => { 
+          list.map((movie, j) => { 
+            if(movie.imdbID==idx){
+              movie.fav=true;
+            }
+          });
+        });
+        this.setState({
+          Result: list,
+        });
+        this.state.Result.map((movie, k) => { 
+          if(movie.fav){
+            this.state.Result[k].fav = true;
+          }else{
+            this.state.Result[k].fav = false;
+          }
+        });   
+        this.SaveToStorage(this.state.findWord);   
+      }      
+    });
   }
   AddToFav = (id,idx) => {
     let favourite = this.state.Result[idx].fav;
+    let log = false;
     if(favourite==undefined || favourite==false){
-      this.state.Result[idx].fav = true;
-    }else{
-      this.state.Result[idx].fav = false;
-    }    
+      log = true;
+    }
+    this.state.Result[idx].fav = log;
     this.SaveToStorage(this.state.findWord);
-    this.SaveToDatabase(id);
+    this.SaveToDatabase(id,'fav',log);
+  }
+  ChangePage = (value) => {
+    if(value=="next"){
+      value = this.state.ActuallPage+1;
+    }else if(value=="prev"){
+      value = this.state.ActuallPage-1;
+    }
+    this.state.ActuallPage = value;
+    console.log(value+" = "+this.state.ActuallPage);
+    this.APIsend(this.state.findWord); 
   }
   AddToResultList(value) {
     let result = this.state.Result;
-    value.fav = false;
-    result.push(value);
+    if(value.Search!=undefined){
+      result = value.Search;
+    }
     this.setState({
-      Result: result
+      Result: result,
+      Pages: new Array(Math.floor(value.totalResults/10)).fill(0),
+      TotalResults: value.totalResults
     });
+    this.LoadFromDatabase(this.state.user.id,'fav');
+    console.log(this.state);
   }
   GetFromStorage(value) {
-    return JSON.parse(localStorage.getItem(value));
+    let res = JSON.parse(localStorage.getItem(value+":"+this.state.ActuallPage))
+    if(res==null || res==undefined){
+      return true;
+    }
+    this.setState({
+      Result: res.result,
+      Pages: new Array(Math.floor(res.totalResults/10)).fill(0),
+      TotalResults: res.totalResults,
+      ActuallPage: res.actuallPage
+    });
+    console.log(this.state);
+    return false;
   }
   SaveToStorage(value) {
-    value = value.replace(/\s/g, "+");
-    let result = this.state.Result;
+    if(value.indexOf(' ') >= 0){
+      value = value.replace(/\s/g, "+");
+    }
+    let result = { result: this.state.Result, totalResults: this.state.TotalResults, actuallPage: this.state.ActuallPage };
     result = JSON.stringify(result);
-    localStorage.setItem(value, result);    
+    localStorage.setItem(value+":"+this.state.ActuallPage, result);    
   }
-  APIsend(value,year) {
+  APIsend(value) {
     if(value.indexOf(' ') >= 0){
       value = value.replace(/\s/g, "+");
     }
     //check storage
-    let ResultFromStorage = this.GetFromStorage(value);
-    if(ResultFromStorage!=null)
+    if(this.GetFromStorage(value))
     {
-      //console.log(ResultFromStorage);
-      this.setState({
-        countResult: 0
-      });
-      this.setState({
-        Result: ResultFromStorage
-      });
-    }else{
       //XMLHttpRequest
       var xhr = new XMLHttpRequest()
       xhr.addEventListener('load', () => {
-        //console.log(xhr.responseText);
         var data=xhr.responseText;
-        var jsonResponse = JSON.parse(data);
-        //console.log(jsonResponse.Response);
+        var jsonResponse = JSON.parse(data);       
         if(jsonResponse.Response=="True"){
-          this.setState({
-            countResult: this.state.countResult-1
-          });
           this.AddToResultList(jsonResponse);
         }      
-        if(this.state.countResult>0){
-          this.APIsend(value,year-1);
-        }else{
-          this.SaveToStorage(value);
-        }
-        if(year<=1895){//first movie lumiere brothers
-          this.setState({
-            countResult: 0
-          });
-        }
+        this.SaveToStorage(value);
       })
+      let page = this.state.ActuallPage;
       xhr.open(
       'GET', 
-      'http://www.omdbapi.com/?i=tt3896198&apikey=2c7487e9&t='+value+
-      '&plot=full&y='+year
+      'http://www.omdbapi.com/?i=tt3896198&apikey=2c7487e9&s='+value+"&type=movie&page="+page
       );
       xhr.send()
     }
@@ -121,8 +171,7 @@ class Search extends Component {
     if(this.state.diff>=1){
       //console.log(this.state.findWord);
       if((!this.state.APIsend) && this.state.findWord!='' && this.state.findWord!=undefined){        
-        let year=new Date().getFullYear();
-        this.APIsend(this.state.findWord,year); 
+        this.APIsend(this.state.findWord); 
         this.setState({
           APIsend: true
         });
@@ -141,10 +190,13 @@ class Search extends Component {
       APIsend: false,
       findWord: event.target.value.trim(),
       countResult: 10,
-      Result: []
+      Result: [],
+      TotalResults: 0, 
+      ActuallPage: 1, 
+      Pages: []
     });    
   }
-  render() {       
+  render() {    
     return(
       <div>
         <Form>
@@ -175,14 +227,30 @@ class Search extends Component {
               </div>
               <div className="MovieItemTitle" >
                 <h5>{item.Title} ({item.Year})</h5>
-                <h6><b>Director:</b> {item.Director}</h6>
-                <h6><b>Genre:</b> {item.Genre}</h6>
-                <h6><b>Language:</b> {item.Language}</h6>
                 <h6><b>Type:</b> {item.Type}</h6>
               </div>
             </div>
           </li>
         })}</ul>
+        <div class="center">
+          <div class="pagination">
+            { (this.state.TotalResults!=0 && this.state.ActuallPage>1) ? <li className="noselect" onClick={()=>this.ChangePage("prev")}>&laquo;</li> : null}
+            {this.state.Pages.map((page, i) => {
+              if(i+1<this.state.ActuallPage){
+                return <li className="noselect" onClick={()=>this.ChangePage(i+1)}>{i+1}</li>
+              }
+              return false;
+            })}  
+            {this.state.Pages.map((page, i) => {
+              let max = this.state.ActuallPage+4;
+              if(i+1>max || this.state.ActuallPage>i+1){
+                return false;
+              }
+              return <li className={ (i+1)==this.state.ActuallPage ? "noselect active" : "noselect" } onClick={()=>this.ChangePage(i+1)}>{i+1}</li>
+            })}          
+            { (this.state.TotalResults!=0 && this.state.ActuallPage<this.state.Pages.length) ? <li className="noselect" onClick={()=>this.ChangePage("next")}>&raquo;</li> : null}
+          </div>
+        </div>
       </div>
     );
   }
@@ -192,21 +260,17 @@ class Communicate extends Component {
   constructor(props) {
     super(props);
     this.handler = this.handler.bind(this);
+    this.state = { userData: null, userId: null, userPicture: null };
   }
-  handler(value){
-    this.props.setLogin(value);
+  handler(value,res){
+    this.props.setLogin(value,res);
   }
   responseFacebook(response)
-  {
-    //console.log(response);
-    data = response;
-    picture = response.picture.data.url;
+  {    
     if (response.accessToken) {
-      this.setLogin(true);
-      //this.setState({isLoggedIn: true});
+      this.setLogin(true,response);
     } else {
-      this.setLogin(false);
-      //this.setState({isLoggedIn: false});
+      this.setLogin(false,response);
     }/* */
   }  
   render() {
@@ -237,13 +301,13 @@ class Entrance extends Component {
     super(props);
     this.handler = this.handler.bind(this);
   }
-  handler(value){
-    this.props.setLogin(value);
+  handler(value,res){
+    this.props.setLogin(value,res);
   }
   render() {
     return(
       <div class="page">
-        { this.props.isLoggedIn ? <Search /> : 
+        { this.props.isLoggedIn ? <Search user={this.props.user} /> : 
         <Communicate setLogin={this.handler}>
           The functionality is only allowed for logged in users
         </Communicate> }
@@ -256,17 +320,18 @@ class AppMain extends Component {
   constructor (props) {
     super(props);
     this.state = {
+      user: null,
       isLoggedIn: false,
       step: 0
     };
     this.changeScene = this.changeScene.bind(this);
     this.setLogin = this.setLogin.bind(this);
   }
-  setLogin(value){
+  setLogin(value,response){
     this.setState({
-      isLoggedIn: value
+      isLoggedIn: value,
+      user: response
     });
-    //console.log('>> '+this.state.isLoggedIn);
   }
   changeScene() {
     this.setState({
@@ -293,6 +358,7 @@ class AppMain extends Component {
             { this.state.step == 1 ? <Entrance 
             setLogin={this.setLogin} 
             isLoggedIn={this.state.isLoggedIn}
+            user={this.state.user}
             /> : null }
         </header>
       </div>

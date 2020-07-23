@@ -66,6 +66,7 @@ ol,ul {
   position: absolute;
   color: ghostwhite;
   font-size: 1.25em;
+  cursor: pointer;
 }
 
 .MovieItem {  
@@ -80,6 +81,41 @@ ol,ul {
 .MovieItemTitle {
   width: 16em;
   padding: 0.4em;
+}
+
+.center {
+  text-align: center;
+}
+
+.pagination {
+  display: inline-flex;
+}
+
+.pagination li {
+  color: whitesmoke;
+  float: left;
+  padding: 5px 12px;
+  text-decoration: none;
+  transition: background-color .3s;
+  border: 1px solid #ddd;
+  margin: 0 6px;
+  cursor: pointer;
+}
+
+.pagination li:hover, .pagination li.active {
+  background-color: whitesmoke;
+  color: black;
+  border: 1px solid whitesmoke;
+}
+
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
 }
 
 @keyframes App-logo-spin {
