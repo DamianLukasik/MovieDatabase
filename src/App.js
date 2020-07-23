@@ -31,19 +31,14 @@ class Search extends Component {
       if(fields=="fav"){
         if(docs==undefined || docs==null){
           let rec = { _id: userID, fav: [id] };
-          console.log(this);
           this.state.database.insert(rec, function (err, newDoc) {
-            console.log("insert new data");
-            console.log(newDoc);
           });/* */
         }else{
           if(value){
             this.state.database.update({ _id: userID }, { $push: { fav: id } }, {}, function () {
-              console.log("update data"+id);
             });
           }else{
             this.state.database.update({ _id: userID }, { $pull: { fav: {$in: [id]} } }, {}, function () {
-              console.log("update data"+id);
             });
           }          
         }  
@@ -52,7 +47,6 @@ class Search extends Component {
   }
   LoadFromDatabase(userID,fields){
     this.state.database.findOne({ _id: userID }, (err, docs) => {
-      console.log(docs);
       if(fields=="fav"){
         let list = this.state.Result;
         if(docs.fav!=null && docs.fav!=undefined){
@@ -100,7 +94,6 @@ class Search extends Component {
       value = this.state.ActuallPage-1;
     }
     this.state.ActuallPage = value;
-    console.log(value+" = "+this.state.ActuallPage);
     this.APIsend(this.state.findWord); 
   }
   ShowCardMovie = (idx,i) => {
@@ -147,7 +140,6 @@ class Search extends Component {
       TotalResults: value.totalResults
     });
     this.LoadFromDatabase(this.state.user.id,'fav');
-    console.log(this.state);
   }
   GetFromStorage(value,type="list",i=null,fav=null) {
     let res = null;
@@ -227,7 +219,6 @@ class Search extends Component {
       diff: d
     });
     if(this.state.diff>=1){
-      //console.log(this.state.findWord);
       if((!this.state.APIsend) && this.state.findWord!='' && this.state.findWord!=undefined){        
         this.APIsend(this.state.findWord); 
         this.setState({
