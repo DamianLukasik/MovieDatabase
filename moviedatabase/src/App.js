@@ -1,10 +1,11 @@
 import React, { Component, PropTypes, useState, useEffect } from 'react';
 import { Text, View} from 'react-native';
-import { Button, Form, FormGroup, Input, Label } from 'reactstrap';
+import { Button, Form, FormGroup, Input, Label, Card } from 'reactstrap';
 import logo from './logo.png';
 import './App.css';
 
 import FacebookLogin from 'react-facebook-login';
+import { FaUndo, FaHeart } from 'react-icons/fa';
 
 var Datastore = require('react-native-local-mongodb')
 
@@ -19,8 +20,10 @@ class Search extends Component {
     this.AddToResultList = this.AddToResultList.bind(this);
     this.SaveToDatabase = this.SaveToDatabase.bind(this);
     this.LoadFromDatabase = this.LoadFromDatabase.bind(this);
+    this.ResetData = this.ResetData.bind(this);
+    this.RemoveCard = this.RemoveCard.bind(this);
     let db = new Datastore({ filename: 'asyncStorageKey', autoload: true });
-    this.state = {user: this.props.user, database: db, TotalResults: 0, ActuallPage: 1, Pages: [], Result: [], date: new Date(), date2: new Date(), diff: 0, APIsend: false };
+    this.state = {Card: null, user: this.props.user, database: db, TotalResults: 0, ActuallPage: 1, Pages: [], Result: [], date: new Date(), date2: new Date(), diff: 0, APIsend: false };
   }
   SaveToDatabase(id,fields,value){
     let userID = this.state.user.id;
@@ -52,13 +55,15 @@ class Search extends Component {
       console.log(docs);
       if(fields=="fav"){
         let list = this.state.Result;
-        docs.fav.map((idx, i) => { 
-          list.map((movie, j) => { 
-            if(movie.imdbID==idx){
-              movie.fav=true;
-            }
+        if(docs.fav!=null && docs.fav!=undefined){
+          docs.fav.map((idx, i) => { 
+            list.map((movie, j) => { 
+              if(movie.imdbID==idx){
+                movie.fav=true;
+              }
+            });
           });
-        });
+        }
         this.setState({
           Result: list,
         });
@@ -82,6 +87,11 @@ class Search extends Component {
     this.state.Result[idx].fav = log;
     this.SaveToStorage(this.state.findWord);
     this.SaveToDatabase(id,'fav',log);
+    if(this.state.Card!=null){
+      if(this.state.Card.imdbID==id){
+        this.state.Card.fav=log;
+      }
+    }    
   }
   ChangePage = (value) => {
     if(value=="next"){
@@ -92,6 +102,39 @@ class Search extends Component {
     this.state.ActuallPage = value;
     console.log(value+" = "+this.state.ActuallPage);
     this.APIsend(this.state.findWord); 
+  }
+  ShowCardMovie = (idx,i) => {
+    let fav = this.state.Result[i].fav;
+    if(this.GetFromStorage(idx,"card",i,fav))
+    {
+      //XMLHttpRequest
+      var xhr = new XMLHttpRequest()
+      xhr.addEventListener('load', () => {
+        var data=xhr.responseText;
+        var jsonResponse = JSON.parse(data);       
+        if(jsonResponse.Response=="True"){
+          jsonResponse.idxOnList = i;
+          jsonResponse.fav = fav;
+          this.setState({
+            Card: jsonResponse,
+          });
+          this.SaveToStorage(idx,'card');
+        }      
+      })
+      xhr.open(
+      'GET', 
+      'http://www.omdbapi.com/?apikey=2c7487e9&i='+idx+'&plot=full'
+      );
+      xhr.send()
+    }else{
+
+    }
+  }
+  RemoveCard() {
+    this.setState({
+      Card: null,
+    });
+    this.APIsend(this.state.findWord.trim());
   }
   AddToResultList(value) {
     let result = this.state.Result;
@@ -106,33 +149,48 @@ class Search extends Component {
     this.LoadFromDatabase(this.state.user.id,'fav');
     console.log(this.state);
   }
-  GetFromStorage(value) {
-    let res = JSON.parse(localStorage.getItem(value+":"+this.state.ActuallPage))
+  GetFromStorage(value,type="list",i=null,fav=null) {
+    let res = null;
+    if(type=="list"){    
+      res = JSON.parse(localStorage.getItem(value+":"+this.state.ActuallPage));
+    }else if(type=="card"){
+      res = JSON.parse(localStorage.getItem(value));
+    }
     if(res==null || res==undefined){
       return true;
     }
-    this.setState({
-      Result: res.result,
-      Pages: new Array(Math.floor(res.totalResults/10)).fill(0),
-      TotalResults: res.totalResults,
-      ActuallPage: res.actuallPage
-    });
-    console.log(this.state);
+    if(type=="list"){    
+      this.setState({
+        Result: res.result,
+        Pages: new Array(Math.floor(res.totalResults/10)).fill(0),
+        TotalResults: res.totalResults,
+        ActuallPage: res.actuallPage
+      });
+    }else if(type=="card"){
+      res.idxOnList = i;
+      res.fav = fav;
+      this.setState({
+        Card: res,
+      });
+    }    
     return false;
   }
-  SaveToStorage(value) {
+  SaveToStorage(value,type="list") {
     if(value.indexOf(' ') >= 0){
       value = value.replace(/\s/g, "+");
     }
-    let result = { result: this.state.Result, totalResults: this.state.TotalResults, actuallPage: this.state.ActuallPage };
-    result = JSON.stringify(result);
-    localStorage.setItem(value+":"+this.state.ActuallPage, result);    
+    if(type=="list"){
+      let result = { result: this.state.Result, totalResults: this.state.TotalResults, actuallPage: this.state.ActuallPage };
+      result = JSON.stringify(result);
+      localStorage.setItem(value+":"+this.state.ActuallPage, result);  
+    }else if(type=="card"){
+      localStorage.setItem(value, JSON.stringify(this.state.Card));
+    }     
   }
   APIsend(value) {
     if(value.indexOf(' ') >= 0){
       value = value.replace(/\s/g, "+");
     }
-    //check storage
     if(this.GetFromStorage(value))
     {
       //XMLHttpRequest
@@ -148,7 +206,7 @@ class Search extends Component {
       let page = this.state.ActuallPage;
       xhr.open(
       'GET', 
-      'http://www.omdbapi.com/?i=tt3896198&apikey=2c7487e9&s='+value+"&type=movie&page="+page
+      'http://www.omdbapi.com/?apikey=2c7487e9&s='+value+"&type=movie&page="+page
       );
       xhr.send()
     }
@@ -184,17 +242,20 @@ class Search extends Component {
     }
   }
   keyUped(event) {    
+    this.ResetData(event.target.value.trim());
+  }
+  ResetData(findWord){
     this.setState({
       date2: new Date(),
       diff: 0,
       APIsend: false,
-      findWord: event.target.value.trim(),
-      countResult: 10,
+      findWord: findWord,
       Result: [],
       TotalResults: 0, 
       ActuallPage: 1, 
-      Pages: []
-    });    
+      Pages: [],
+      Card: null
+    });  
   }
   render() {    
     return(
@@ -214,43 +275,70 @@ class Search extends Component {
             />
           </FormGroup>
         </Form>
-        <ul className="MovieList">{this.state.Result.map((item, i) => {
-          //tu skończyłęm zrobić dodawanie do ulubionych, kartę filmu
-          return <li key={i}>
-            <div className="MovieItem">
-              <div>
-                <div style={{color: item.fav ? "tomato" : "ghostwhite" }} className="fav" onClick={()=>this.AddToFav(item.imdbID,i)} >♥</div>
-                <img 
-                className="MovieItemPoster" 
-                src={item.Poster!="N/A" ? item.Poster : logo } 
-                />
-              </div>
-              <div className="MovieItemTitle" >
-                <h5>{item.Title} ({item.Year})</h5>
-                <h6><b>Type:</b> {item.Type}</h6>
-              </div>
+        { this.state.Card!=null ? 
+        <div className="Movie">
+          <div className="icon" onClick={()=>this.RemoveCard()} ><FaUndo /></div>
+          <div>
+            <div style={{color:  this.state.Card.fav ? "tomato" : "ghostwhite" }} className="fav fav-large" onClick={()=>this.AddToFav( this.state.Card.imdbID, this.state.Card.idxOnList)} ><FaHeart/></div>
+              <img 
+                className="MoviePoster" 
+                src={ this.state.Card.Poster!="N/A" ?  this.state.Card.Poster : logo } 
+              />
             </div>
-          </li>
-        })}</ul>
-        <div class="center">
-          <div class="pagination">
-            { (this.state.TotalResults!=0 && this.state.ActuallPage>1) ? <li className="noselect" onClick={()=>this.ChangePage("prev")}>&laquo;</li> : null}
-            {this.state.Pages.map((page, i) => {
-              if(i+1<this.state.ActuallPage){
-                return <li className="noselect" onClick={()=>this.ChangePage(i+1)}>{i+1}</li>
+            <div className="MovieTitle" >
+              <h5>{ this.state.Card.Title} ({ this.state.Card.Year})</h5>
+              <div style={{ padding: "5px" }}><div class="star-ratings-sprite"><span style={{ width: (10*this.state.Card.imdbRating)+"%" }} class="star-ratings-sprite-rating"></span></div></div>
+              {
+                Object.keys(this.state.Card).map((key, i) => {
+                  let value = this.state.Card[key];
+                  if((typeof value === 'string' || value instanceof String) && (value!="N/A" && key!="Website" && key!="idxOnList" && key!="fav" && key!="Response" && key!="Type" && key!="imdbRating" && key!="imdbVotes" && key!="Title" && key!="Year" && key!="Metascore" && key!="Poster" && key!="imdbID")){
+                    return <h6 key={i}><b>{key}:</b> { value }</h6>;
+                  }
+                  //return <h6 key={i}><b>{key}:</b> { val }</h6>;
+                })
               }
-              return false;
-            })}  
-            {this.state.Pages.map((page, i) => {
-              let max = this.state.ActuallPage+4;
-              if(i+1>max || this.state.ActuallPage>i+1){
+            </div>
+          </div> : 
+        <div>
+          <ul className="MovieList">{this.state.Result.map((item, i) => {
+            //tu skończyłęm zrobić dodawanie do ulubionych, kartę filmu
+            return <li key={i}>
+              <div className="MovieItem">
+                <div>
+                  <div style={{color: item.fav ? "tomato" : "ghostwhite" }} className="fav" onClick={()=>this.AddToFav(item.imdbID,i)} ><FaHeart/></div>
+                  <img 
+                  className="MovieItemPoster" 
+                  src={item.Poster!="N/A" ? item.Poster : logo } 
+                  />
+                </div>
+                <div onClick={()=>this.ShowCardMovie(item.imdbID,i)} className="MovieItemTitle" >
+                  <h5>{item.Title} ({item.Year})</h5>
+                  <h6><b>Type:</b> {item.Type}</h6>
+                </div>
+              </div>
+            </li>
+          })}</ul>
+          <div class="center">
+            <div class="pagination">
+              { (this.state.TotalResults!=0 && this.state.ActuallPage>1) ? <li className="noselect" onClick={()=>this.ChangePage("prev")}>&laquo;</li> : null}
+              {this.state.Pages.map((page, i) => {
+                if(i+1<this.state.ActuallPage){
+                  return <li className="noselect" onClick={()=>this.ChangePage(i+1)}>{i+1}</li>
+                }
                 return false;
-              }
-              return <li className={ (i+1)==this.state.ActuallPage ? "noselect active" : "noselect" } onClick={()=>this.ChangePage(i+1)}>{i+1}</li>
-            })}          
-            { (this.state.TotalResults!=0 && this.state.ActuallPage<this.state.Pages.length) ? <li className="noselect" onClick={()=>this.ChangePage("next")}>&raquo;</li> : null}
+              })}  
+              {this.state.Pages.map((page, i) => {
+                let max = this.state.ActuallPage+4;
+                if(i+1>max || this.state.ActuallPage>i+1){
+                  return false;
+                }
+                return <li className={ (i+1)==this.state.ActuallPage ? "noselect active" : "noselect" } onClick={()=>this.ChangePage(i+1)}>{i+1}</li>
+              })}          
+              { (this.state.TotalResults!=0 && this.state.ActuallPage<this.state.Pages.length) ? <li className="noselect" onClick={()=>this.ChangePage("next")}>&raquo;</li> : null}
+            </div>
           </div>
         </div>
+        }
       </div>
     );
   }
@@ -260,7 +348,6 @@ class Communicate extends Component {
   constructor(props) {
     super(props);
     this.handler = this.handler.bind(this);
-    this.state = { userData: null, userId: null, userPicture: null };
   }
   handler(value,res){
     this.props.setLogin(value,res);
@@ -307,7 +394,7 @@ class Entrance extends Component {
   render() {
     return(
       <div class="page">
-        { this.props.isLoggedIn ? <Search user={this.props.user} /> : 
+        { this.props.isLoggedIn ? <div><p className="profile">{this.props.user.name} <img src={this.props.user.picture.data.url}/></p><Search user={this.props.user} /></div> : 
         <Communicate setLogin={this.handler}>
           The functionality is only allowed for logged in users
         </Communicate> }

@@ -41,6 +41,13 @@
   margin-bottom: 30px;
   transform: rotateZ(3deg);
   font-size: 42px;
+  -webkit-transition: -webkit-transform .8s ease-in-out;
+          transition:         transform .8s ease-in-out;
+}
+
+.SearchMovieHeader:hover {
+  -webkit-transform: rotate(-8deg);
+          transform: rotate(-8deg);
 }
 
 .SearchMovieInput{
@@ -62,25 +69,87 @@ ol,ul {
   list-style:none;
 }
 
-.fav {
-  position: absolute;
+.icon {
+  position: relative;
   color: ghostwhite;
   font-size: 1.25em;
   cursor: pointer;
+  left: -30px;
+  height: fit-content;
+  -webkit-transition: -webkit-transform 1s ease-in-out;
+          transition:         transform 1s ease-in-out;
+}
+.icon:hover {
+  -webkit-transform: rotate(360deg);
+          transform: rotate(360deg);
+}
+
+.fav {
+  position: absolute;
+  color: ghostwhite;
+  font-size: 0.85em;
+  cursor: pointer;
+  padding: 0px 3px;
+  transition: color 0.3s;
+}
+
+.fav:hover {
+  color: #ff8e7a;
+}
+
+.fav-large{
+  font-size: 2.15em;
+  padding: 0px 20px;
+}
+
+.profile{
+  position: absolute;
+  top: 15px;
+  left: 75px;
+}
+
+.profile img{
+  border-radius: 25px;
+  -webkit-transition: -webkit-transform .8s ease-in-out;
+          transition:         transform .8s ease-in-out;
+}
+.profile img:hover {
+  -webkit-transform: rotate(1080deg);
+          transform: rotate(1080deg);
+}
+
+.Movie {  
+  display: inline-flex;
+  padding: 2.5em;
+  margin: 5px;
 }
 
 .MovieItem {  
   display: inline-flex;
   padding: 0.5em;
+  border: 1px solid white;
+  margin: 5px;
 }
 
 .MovieItemPoster {
-  width: 5em;
+  width: 3em;
+}
+
+.MoviePoster {
+  width: 12em;
+  padding: 15px;
 }
 
 .MovieItemTitle {
   width: 16em;
   padding: 0.4em;
+  cursor: pointer;
+}
+
+.MovieTitle {
+  min-width: 60%;
+  padding: 0.4em;
+  text-align: justify;
 }
 
 .center {
@@ -148,4 +217,23 @@ ol,ul {
   to {
     width:500%;
   }
+}
+
+.star-ratings-sprite {
+  background: url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/2605/star-rating-sprite.png") repeat-x;
+  font-size: 0;
+  height: 21px;
+  line-height: 0;
+  overflow: hidden;
+  text-indent: -999em;
+  width: 110px;
+  margin: 0 auto;
+}
+
+.star-ratings-sprite-rating {
+  background: url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/2605/star-rating-sprite.png") repeat-x;
+  background-position: 0 100%;
+  float: left;
+  height: 21px;
+  display:block;  
 }
