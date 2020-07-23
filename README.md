@@ -1,5 +1,11 @@
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Installation of application in local environment
+
+1. Use `git clone https://github.com/DamianLukasik/MovieDatabase.git` in terminal
+2. Enter to catalog `MovieDatabase`
+3. Use `npm start` in terminal
+
 ## Available Scripts
 
 In the project directory, you can run:
